@@ -30,59 +30,19 @@
 static const char *camera_path = "/dev/video0";
 static int video_width = 640;
 static int video_height = 480;
-static int want_verbose = 0;
 static int printer_timeout = 2;
 
 // -----------------------------------------------------------
-void show_data(const struct quirc_data *data, struct dthash *dt,
-		int want_verbose)
+void show_data(const struct quirc_data *data, struct dthash *dt)
 {
 	if (dthash_seen(dt, data))
 		return;
 
 	printf("==> %s\n", data->payload);
 
-	if (want_verbose)
-		printf("    Version: %d, ECC: %c, Mask: %d, Type: %d\n\n",
-		       data->version, "MLHQ"[data->ecc_level],
-		       data->mask, data->data_type);
-}
-
-int parse_size(const char *text, int *video_width, int *video_height)
-{
-	int state = 0;
-	int w = 0, h = 0;
-	int i;
-
-	for (i = 0; text[i]; i++) {
-		if (text[i] == 'x' || text[i] == 'X') {
-			if (state == 0) {
-				state = 1;
-			} else {
-				fprintf(stderr, "parse_size: expected WxH\n");
-				return -1;
-			}
-		} else if (isdigit(text[i])) {
-			if (state == 0)
-				w = w * 10 + text[i] - '0';
-			else
-				h = h * 10 + text[i] - '0';
-		} else {
-			fprintf(stderr, "Invalid character in size: %c\n",
-				text[i]);
-			return -1;
-		}
-	}
-
-	if (w <= 0 || w >= 10000 || h <= 0 || h >= 10000) {
-		fprintf(stderr, "Invalid size: %dx%d\n", w, h);
-		return -1;
-	}
-
-	*video_width = w;
-	*video_height = h;
-
-	return 0;
+	printf("    Version: %d, ECC: %c, Mask: %d, Type: %d\n\n",
+	       data->version, "MLHQ"[data->ecc_level],
+	       data->mask, data->data_type);
 }
 // ---------------------------------------------------------
 
@@ -136,7 +96,7 @@ static int main_loop(struct camera *cam,
 
 			quirc_extract(q, i, &code);
 			if (!quirc_decode(&code, &data))
-				show_data(&data, &dt, want_verbose);
+				show_data(&data, &dt);
 		}
 	}
 }
@@ -203,64 +163,7 @@ fail_qr:
 	return -1;
 }
 
-static void usage(const char *progname)
-{
-	printf("Usage: %s [options]\n\n"
-"Valid options are:\n\n"
-"    -v             Show extra data for detected codes.\n"
-"    -d <device>    Specify camera device path.\n"
-"    -s <WxH>       Specify video dimensions.\n"
-"    -p <timeout>   Set printer timeout (seconds).\n"
-"    --help         Show this information.\n"
-"    --version      Show library version information.\n",
-	progname);
-}
-
 int main(int argc, char **argv)
 {
-	static const struct option longopts[] = {
-		{"help",		0, 0, 'H'},
-		{"version",		0, 0, 'V'},
-		{NULL,			0, 0, 0}
-	};
-	int opt;
-
-	printf("quirc scanner demo\n");
-	printf("Copyright (C) 2010-2012 Daniel Beer <dlbeer@gmail.com>\n");
-	printf("\n");
-
-	while ((opt = getopt_long(argc, argv, "d:s:vg:p:",
-				  longopts, NULL)) >= 0)
-		switch (opt) {
-		case 'V':
-			printf("Library version: %s\n", quirc_version());
-			return 0;
-
-		case 'H':
-			usage(argv[0]);
-			return 0;
-
-		case 'v':
-			want_verbose = 1;
-			break;
-
-		case 's':
-			if (parse_size(optarg, &video_width, &video_height) < 0)
-				return -1;
-			break;
-
-		case 'p':
-			printer_timeout = atoi(optarg);
-			break;
-
-		case 'd':
-			camera_path = optarg;
-			break;
-
-		case '?':
-			fprintf(stderr, "Try --help for usage information\n");
-			return -1;
-		}
-
 	return run_scanner();
 }

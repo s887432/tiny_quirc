@@ -30,6 +30,8 @@
 #endif
 #include "camera.h"
 
+#include <stdio.h>
+
 /************************************************************************
  * Fraction arithmetic
  */
@@ -141,10 +143,16 @@ static int frac_cmp_ref(const struct v4l2_fract *ref,
 static camera_format_t map_fmt(uint32_t pf)
 {
 	if (pf == V4L2_PIX_FMT_YUYV)
+	{
+		printf("V4L2_PIX_FMT_YUYV\n");
 		return CAMERA_FORMAT_YUYV;
+	}
 
 	if (pf == V4L2_PIX_FMT_MJPEG)
+	{
+		printf("V4L2_PIX_FMT_MJPEG\n");
 		return CAMERA_FORMAT_MJPEG;
+	}
 
 	return CAMERA_FORMAT_UNKNOWN;
 }
