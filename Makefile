@@ -30,7 +30,6 @@ LIB_OBJ = \
     lib/version_db.o
 DEMO_OBJ = \
     demo/camera.o \
-    demo/mjpeg.o \
     demo/convert.o
 
 DEMO_UTIL_OBJ = \

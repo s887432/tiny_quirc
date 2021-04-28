@@ -20,11 +20,11 @@
 #include <quirc.h>
 #include <time.h>
 #include <getopt.h>
-
 #include "camera.h"
-#include "mjpeg.h"
 #include "convert.h"
 #include "dthash.h"
+
+#include <stdio.h>
 
 /* Collected command-line arguments */
 static const char *camera_path = "/dev/video0";
@@ -46,8 +46,7 @@ void show_data(const struct quirc_data *data, struct dthash *dt)
 }
 // ---------------------------------------------------------
 
-static int main_loop(struct camera *cam,
-		     struct quirc *q, struct mjpeg_decoder *mj)
+static int main_loop(struct camera *cam, struct quirc *q)
 {
 	struct dthash dt;
 
@@ -67,18 +66,13 @@ static int main_loop(struct camera *cam,
 
 		head = camera_get_head(cam);
 
-		switch (parms->format) {
-		case CAMERA_FORMAT_MJPEG:
-			mjpeg_decode_gray(mj, head->addr, head->size,
-					  buf, w, w, h);
-			break;
-
-		case CAMERA_FORMAT_YUYV:
+		if( parms->format == CAMERA_FORMAT_YUYV )
+		{
 			yuyv_to_luma(head->addr, w * 2, w, h, buf, w);
-			break;
-
-		default:
-			fprintf(stderr, "Unknown frame format\n");
+		}
+		else
+		{
+			printf("format is not supported\n");
 			return -1;
 		}
 
@@ -105,7 +99,6 @@ static int run_scanner(void)
 {
 	struct quirc *qr;
 	struct camera cam;
-	struct mjpeg_decoder mj;
 	const struct camera_parms *parms;
 
 	camera_init(&cam);
@@ -143,10 +136,8 @@ static int run_scanner(void)
 		goto fail_qr_resize;
 	}
 
-	mjpeg_init(&mj);
-	if (main_loop(&cam, qr, &mj) < 0)
+	if (main_loop(&cam, qr) < 0)
 		goto fail_main_loop;
-	mjpeg_free(&mj);
 
 	quirc_destroy(qr);
 	camera_destroy(&cam);
@@ -154,7 +145,6 @@ static int run_scanner(void)
 	return 0;
 
 fail_main_loop:
-	mjpeg_free(&mj);
 fail_qr_resize:
 	quirc_destroy(qr);
 fail_qr:
